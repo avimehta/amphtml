@@ -404,14 +404,13 @@ export function childElementsByTag(parent, tagName) {
  */
 export function getDataParamsFromAttributes(element, opt_computeParamNameFunc) {
   const computeParamNameFunc = opt_computeParamNameFunc || (key => key);
-  const attributes = element.attributes;
+  const dataset = element.dataset;
   const params = Object.create(null);
-  for (let i = 0; i < attributes.length; i++) {
-    const attr = attributes[i];
-    const matches = attr.name.match(/^data-param-(.+)/);
+  for (let key in dataset) {
+    const matches = key.match(/^param(.+)/);
     if (matches) {
-      const param = dashToCamelCase(matches[1]);
-      params[computeParamNameFunc(param)] = attr.value;
+      const param = matches[1][0].toLowerCase() + matches[1].substr(1);
+      params[computeParamNameFunc(param)] = dataset[key];
     }
   }
   return params;
