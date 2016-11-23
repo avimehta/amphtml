@@ -19,6 +19,7 @@ import {getElement, isVisibilitySpecValid} from './visibility-impl';
 import {Observable} from '../../../src/observable';
 import {getServicePromiseForDoc} from '../../../src/service';
 import {timerFor} from '../../../src/timer';
+import {map} from '../../../src/types';
 import {viewerForDoc} from '../../../src/viewer';
 import {viewportForDoc} from '../../../src/viewport';
 import {getDataParamsFromAttributes, matches} from '../../../src/dom';
@@ -260,8 +261,14 @@ export class InstrumentationService {
         'createVisibilityListener should be called with visible or hidden ' +
         'eventType');
     const shouldBeVisible = eventType == AnalyticsEventType.VISIBLE;
-    /** @const {!JSONType} */
-    const spec = config['visibilitySpec'];
+    /** @type {!JSONType} */
+    let spec = config['visibilitySpec'];
+
+    // analytics in embeds are always scoped to the embed if no spec is provided
+    if (this.isInEmbed_(analyticsElement)) {
+      spec = spec || map();
+      spec['selector'] = spec['selector'] || ':root';
+    }
     if (spec) {
       if (!isVisibilitySpecValid(config)) {
         return;
@@ -524,10 +531,18 @@ export class InstrumentationService {
    * @return {boolean} True if the trigger is allowed. False otherwise.
    */
   isTriggerAllowed_(triggerType, element) {
-    if (element.ownerDocument.defaultView != this.ampdoc.win) {
+    if (this.isInEmbed_(element)) {
       return ALLOWED_IN_EMBED.indexOf(triggerType) > -1;
     }
     return true;
+  }
+
+  /**
+   * @param {!Element} element
+   * @return {Boolean}
+   */
+  isInEmbed_(element) {
+    return element.ownerDocument.defaultView != this.ampdoc.win
   }
 }
 

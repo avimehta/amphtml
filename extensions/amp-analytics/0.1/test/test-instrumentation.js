@@ -40,6 +40,7 @@ describe('amp-analytics.instrumentation', function() {
   let clock;
   let sandbox;
   let ampdoc;
+  let ampAnalytics;
 
   beforeEach(() => {
     sandbox = sinon.sandbox.create();
@@ -47,6 +48,8 @@ describe('amp-analytics.instrumentation', function() {
     const docState = documentStateFor(window);
     sandbox.stub(docState, 'isHidden', () => false);
     ampdoc = new AmpDocSingle(window);
+    ampAnalytics = document.createElement('amp-analytics');
+    document.body.appendChild(ampAnalytics);
     installResourcesServiceForDoc(ampdoc);
     installPlatformService(window);
     installTimerService(window);
@@ -71,26 +74,24 @@ describe('amp-analytics.instrumentation', function() {
   it('works for visible event', () => {
     ins.viewer_.setVisibilityState_(VisibilityState.VISIBLE);
     const fn = sandbox.stub();
-    ins.addListener({'on': 'visible'}, fn);
+    ins.addListener({'on': 'visible'}, fn, ampAnalytics);
     expect(fn).to.be.calledOnce;
   });
 
   it('works for hidden event', () => {
     const fn = sandbox.stub();
-    ins.addListener({'on': 'hidden'}, fn);
+    ins.addListener({'on': 'hidden'}, fn, ampAnalytics);
     ins.viewer_.setVisibilityState_(VisibilityState.HIDDEN);
     expect(fn.calledOnce).to.be.true;
   });
 
   describe('click listeners', () => {
-    let el1, el2, fn1, fn2, ampAnalytics;
+    let el1, el2, fn1, fn2;
     beforeEach(() => {
       el1 = document.createElement('test');
       fn1 = sandbox.stub();
       el2 = document.createElement('test2');
       fn2 = sandbox.stub();
-      ampAnalytics = document.createElement('amp-analytics');
-      document.body.appendChild(ampAnalytics);
       document.body.appendChild(el1);
       document.body.appendChild(el2);
     });
@@ -492,8 +493,6 @@ describe('amp-analytics.instrumentation', function() {
   it('extract element level vars from data attribute with prefix vars.',
     () => {
       const el1 = document.createElement('div');
-      const ampAnalytics = document.createElement('amp-analytics');
-      document.body.appendChild(ampAnalytics);
       el1.className = 'x';
       el1.dataset.varsTest = 'foo';
       ins.addListener({'on': 'click', 'selector': '.x'},
