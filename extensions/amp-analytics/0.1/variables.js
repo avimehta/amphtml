@@ -61,17 +61,37 @@ export class ExpansionOptions {
    * @param {number=} opt_iterations
    * @param {boolean=} opt_noEncode
    */
-  constructor(vars, opt_iterations, opt_noEncode) {
+  constructor(vars, opt_iterations, opt_noEncode, opt_urlReplacements) {
     /** @const {!Object<string, string|Array<string>>} */
     this.vars = vars;
     /** @const {number} */
-    this.iterations = opt_iterations === undefined ? 2 : opt_iterations;
+    this.iterations = opt_iterations === undefined ? 3 : opt_iterations;
     /** @const {boolean} */
     this.noEncode = !!opt_noEncode;
+    /** @const{../../../src/service/url-replacements-impl.UrlReplacements=} */
+    this.urlReplacements = opt_urlReplacements;
   }
 }
 
 
+/**
+ * @param {string} str
+ * @param {string} regex
+ * @param {string=} opt_index
+ * @return {string}
+ */
+function regexFilter(str, regex, opt_index) {
+  try {
+    const pattern = new RegExp(regex);
+    const result = pattern.exec(str);
+    let index = Number(opt_index);
+    index = Number.isFinite(index) && index >= 0 ? index : 0;
+    return result ? result[index] : '';
+  } catch (e) {
+    user().error('Error in regex filter.');
+  }
+  return '';
+}
 
 /**
  * @param {string} str
@@ -121,6 +141,7 @@ export class VariableService {
 
     this.register_('default', new Filter(defaultFilter, /* allowNulls */ true));
     this.register_('substr', new Filter(substrFilter));
+    this.register_('regex', new Filter(regexFilter));
     this.register_('trim', new Filter(value => value.trim()));
     this.register_('json', new Filter(value => JSON.stringify(value)));
     this.register_('toLowerCase', new Filter(value => value.toLowerCase()));
@@ -212,15 +233,18 @@ export class VariableService {
         return Promise.resolve('');
       }
 
+      // If the value can be expanded by lookup on vars section, do that and
+      // discard the argList. Otherwise, keep the value intact so that it gets
+      // expanded and processed below.
       const {name, argList} = this.getNameArgs_(initialValue);
-      const raw = options.vars[name] || '';
+      const raw = options.vars[name] || initialValue;
 
       let p;
       if (typeof raw == 'string') {
         // Expand string values further.
         p = this.expandTemplate(raw,
             new ExpansionOptions(options.vars, options.iterations - 1,
-                options.noEncode));
+                options.noEncode, options.urlReplacements));
       } else {
         // Values can also be arrays and objects. Don't expand them.
         p = Promise.resolve(raw);
@@ -231,10 +255,9 @@ export class VariableService {
             this.applyFilters_(expandedValue, tokens))
         .then(finalRawValue => {
           // Then encode the value
-          const val = options.noEncode
+          return options.noEncode
               ? finalRawValue
               : this.encodeVars(finalRawValue, name);
-          return val ? val + argList : val;
         })
         .then(encodedValue => {
           // Replace it in the string
@@ -249,7 +272,8 @@ export class VariableService {
     });
 
     // Once all the promises are complete, return the expanded value.
-    return Promise.all(replacementPromises).then(() => replacement);
+    return Promise.all(replacementPromises).then(() => options.urlReplacements
+      ? options.urlReplacements.expandAsync(replacement) : replacement);
   }
 
   /**

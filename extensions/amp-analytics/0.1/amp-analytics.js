@@ -490,12 +490,10 @@ export class AmpAnalytics extends AMP.BaseElement {
       .then(() => {
         request = this.addParamsToUrl_(request, params);
         this.config_['vars']['requestCount']++;
-        const expansionOptions = this.expansionOptions_(event, trigger);
+        const expansionOptions = this.expansionOptions_(event, trigger,
+            undefined, undefined, urlReplacementsForDoc(this.element));
         return this.variableService_.expandTemplate(request, expansionOptions);
       })
-      .then(request =>
-        // For consistency with amp-pixel we also expand any url replacements.
-        urlReplacementsForDoc(this.element).expandAsync(request))
       .then(request => {
         this.sendRequest_(request, trigger);
         return request;
@@ -642,14 +640,18 @@ export class AmpAnalytics extends AMP.BaseElement {
    * @param {!Object<string, Object<string, string|Array<string>>>} source2
    * @param {number=} opt_iterations
    * @param {boolean=} opt_noEncode
+   * @param {../../../src/service/url-replacements-impl.UrlReplacements=} opt_urlReplacements
+   *
    * @return {!ExpansionOptions}
    */
-  expansionOptions_(source1, source2, opt_iterations, opt_noEncode) {
+  expansionOptions_(source1, source2, opt_iterations, opt_noEncode,
+      opt_urlReplacements) {
     const vars = map();
     this.mergeObjects_(this.config_['vars'], vars);
     this.mergeObjects_(source2['vars'], vars);
     this.mergeObjects_(source1['vars'], vars);
-    return new ExpansionOptions(vars, opt_iterations, opt_noEncode);
+    return new ExpansionOptions(vars, opt_iterations, opt_noEncode,
+      opt_urlReplacements);
   }
 }
 

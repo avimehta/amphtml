@@ -453,6 +453,9 @@ export const ANALYTICS_CONFIG = /** @type {!JSONType} */ ({
       'eventValue': '0',
       'documentLocation': 'SOURCE_URL',
       'clientId': 'CLIENT_ID(AMP_ECID_GOOGLE)',
+      'clientId1': '${CLIENT_ID(_ga)|regex:GA1\\.[\\d\\-]+\\.(.*):1}',
+      'clientIdCookie': 'CLIENT_ID(_ga)',
+      'clientId2': '${clientIdCookie|regex:GA1\\.[\\d\\-]+\\.(.*):1}',
       'dataSource': 'AMP',
     },
     'requests': {
@@ -466,6 +469,8 @@ export const ANALYTICS_CONFIG = /** @type {!JSONType} */ ({
           'sr=${screenWidth}x${screenHeight}&' +
           '_utmht=${timestamp}&' +
           'cid=${clientId}&' +
+          'cid1=${clientId1}&' +
+          'cid2=${clientId2}&' +
           'tid=${account}&' +
           'dl=${documentLocation}&' +
           'dr=${documentReferrer}&' +
